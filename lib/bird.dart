@@ -321,7 +321,7 @@ class FlappyBirdGame extends FlameGame with TapDetector, KeyboardEvents {
   final Random random = Random();
 
   double pipeSpeed = 200;
-  double pipeGap = 280; // ✅ كبرنا الفتحة بين الأنابيب لتسهيل اللعب
+  double pipeGap = 280;
   double pipeSpawnTimer = 0;
   double birdIdleTimer = 0;
 
@@ -379,17 +379,17 @@ class FlappyBirdGame extends FlameGame with TapDetector, KeyboardEvents {
     velocity += gravity * dt;
     bird.y += velocity * dt;
 
-    // لو الطيّرة خرجت من الشاشة
+
     if (bird.y > size.y - bird.height || bird.y < 0) {
       gameOver();
     }
 
-    // تحريك الأنابيب
+
     for (var pipe in pipes) {
       pipe.x -= pipeSpeed * dt;
     }
 
-    // إزالة الأنابيب القديمة
+
     pipes.removeWhere((pipe) {
       if (pipe.x + pipe.width < 0) {
         remove(pipe);
@@ -398,14 +398,14 @@ class FlappyBirdGame extends FlameGame with TapDetector, KeyboardEvents {
       return false;
     });
 
-    // توليد أنابيب جديدة
+
     pipeSpawnTimer += dt;
     if (pipeSpawnTimer > 2.8) {
       spawnPipe();
       pipeSpawnTimer = 0;
     }
 
-    // التحقق من الاصطدام
+
     for (var pipe in pipes) {
       if (bird.toRect().overlaps(pipe.toRect())) {
         gameOver();
@@ -429,7 +429,6 @@ class FlappyBirdGame extends FlameGame with TapDetector, KeyboardEvents {
     velocity = flapStrength;
   }
 
-  // ✅ التحكم بالكيبورد (Space للقفز)
   @override
   KeyEventResult onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
     if (keysPressed.contains(LogicalKeyboardKey.space)) {
