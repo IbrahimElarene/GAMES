@@ -1,0 +1,468 @@
+// import 'package:flame/game.dart';
+// import 'package:flame/components.dart';
+// import 'package:flame/input.dart';
+// import 'package:flutter/material.dart';
+// import 'dart:math';
+//
+// class Bird extends StatelessWidget {
+//   const Bird({super.key});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: GameWidget(
+//         game: FlappyBirdGame(),
+//         overlayBuilderMap: {
+//           'Start': (context, game) => Center(
+//             child: Text(
+//               'Tap to Start',
+//               style: TextStyle(
+//                 fontSize: 32,
+//                 color: Colors.white,
+//                 fontWeight: FontWeight.bold,
+//                 shadows: [
+//                   Shadow(
+//                       blurRadius: 10,
+//                       color: Colors.black,
+//                       offset: Offset(2, 2))
+//                 ],
+//               ),
+//             ),
+//           ),
+//           'GameOver': (context, game) => Center(
+//             child: Column(
+//               mainAxisAlignment: MainAxisAlignment.center,
+//               children: [
+//                 Text(
+//                   'Game Over',
+//                   style: TextStyle(
+//                     fontSize: 40,
+//                     color: Colors.redAccent,
+//                     fontWeight: FontWeight.bold,
+//                     shadows: [
+//                       Shadow(
+//                           blurRadius: 10,
+//                           color: Colors.black,
+//                           offset: Offset(2, 2))
+//                     ],
+//                   ),
+//                 ),
+//                 const SizedBox(height: 20),
+//                 ElevatedButton(
+//                   onPressed: () {
+//                     (game as FlappyBirdGame).restart();
+//                   },
+//                   style: ElevatedButton.styleFrom(
+//                     backgroundColor: Colors.orangeAccent,
+//                     padding: const EdgeInsets.symmetric(
+//                         horizontal: 40, vertical: 15),
+//                     shape: RoundedRectangleBorder(
+//                       borderRadius: BorderRadius.circular(12),
+//                     ),
+//                   ),
+//                   child: const Text(
+//                     'Restart',
+//                     style: TextStyle(
+//                       fontSize: 22,
+//                       fontWeight: FontWeight.bold,
+//                       color: Colors.white,
+//                     ),
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ),
+//         },
+//         initialActiveOverlays: const ['Start'],
+//       ),
+//     );
+//   }
+// }
+//
+//
+// class FlappyBirdGame extends FlameGame with TapDetector {
+//   late SpriteComponent bird;
+//   late SpriteComponent background;
+//
+//   double velocity = 0;
+//   double gravity = 400;
+//   double flapStrength = -300;
+//   bool isGameOver = false;
+//   bool isGameStarted = false;
+//
+//   final List<SpriteComponent> pipes = [];
+//   final Random random = Random();
+//
+//   double pipeSpeed = 200;
+//   double pipeGap = 220; // ✅ كبرنا الفتحة بين الأنابيب
+//   double pipeSpawnTimer = 0;
+//   double birdIdleTimer = 0;
+//
+//   @override
+//   Future<void> onLoad() async {
+//     background = SpriteComponent()
+//       ..sprite = await loadSprite('bg.png')
+//       ..size = size;
+//
+//     bird = SpriteComponent()
+//       ..sprite = await loadSprite('sprite.png')
+//       ..size = Vector2(50, 50)
+//       ..position = Vector2(size.x / 4, size.y / 2);
+//
+//     add(background);
+//     add(bird);
+//   }
+//
+//   void spawnPipe() async {
+//     final pipeWidth = 80.0;
+//     final gap = pipeGap;
+//
+//     final gapY = random.nextDouble() * (size.y - gap - 200) + 100;
+//
+//     final topSprite = await loadSprite('top.png');
+//     final bottomSprite = await loadSprite('down.png');
+//
+//     final topPipe = SpriteComponent()
+//       ..sprite = topSprite
+//       ..size = Vector2(pipeWidth, gapY)
+//       ..position = Vector2(size.x, 0);
+//
+//     final bottomPipe = SpriteComponent()
+//       ..sprite = bottomSprite
+//       ..size = Vector2(pipeWidth, size.y - (gapY + gap))
+//       ..position = Vector2(size.x, gapY + gap);
+//
+//     add(topPipe);
+//     add(bottomPipe);
+//     pipes.addAll([topPipe, bottomPipe]);
+//   }
+//
+//   @override
+//   void update(double dt) {
+//     super.update(dt);
+//
+//     if (isGameOver) return;
+//
+//     // لو اللعبة لسه ما بدأتش
+//     if (!isGameStarted) {
+//       birdIdleTimer += dt;
+//       bird.y = size.y / 2 + sin(birdIdleTimer * 3) * 10;
+//       return;
+//     }
+//
+//     velocity += gravity * dt;
+//     bird.y += velocity * dt;
+//
+//     // لو خرجت من الشاشة
+//     if (bird.y > size.y - bird.height || bird.y < 0) {
+//       gameOver();
+//     }
+//
+//     // تحريك الأنابيب
+//     for (var pipe in pipes) {
+//       pipe.x -= pipeSpeed * dt;
+//     }
+//
+//     // إزالة الأنابيب القديمة
+//     pipes.removeWhere((pipe) {
+//       if (pipe.x + pipe.width < 0) {
+//         remove(pipe);
+//         return true;
+//       }
+//       return false;
+//     });
+//
+//     // توليد أنابيب جديدة
+//     pipeSpawnTimer += dt;
+//     if (pipeSpawnTimer > 1.8) {
+//       spawnPipe();
+//       pipeSpawnTimer = 0;
+//     }
+//
+//     // التحقق من الاصطدام
+//     for (var pipe in pipes) {
+//       if (bird.toRect().overlaps(pipe.toRect())) {
+//         gameOver();
+//         break;
+//       }
+//     }
+//   }
+//
+//   @override
+//   void onTap() {
+//     if (!isGameStarted && !isGameOver) {
+//       isGameStarted = true;
+//       velocity = flapStrength;
+//       spawnPipe();
+//       overlays.remove('Start');
+//       return;
+//     }
+//
+//     if (isGameOver) return;
+//
+//     velocity = flapStrength;
+//   }
+//
+//   void gameOver() {
+//     isGameOver = true;
+//     isGameStarted = false;
+//     overlays.add('GameOver');
+//   }
+//
+//   void restart() {
+//     isGameOver = false;
+//     isGameStarted = false;
+//     velocity = 0;
+//     bird.position = Vector2(size.x / 4, size.y / 2);
+//
+//     for (var pipe in pipes) {
+//       remove(pipe);
+//     }
+//     pipes.clear();
+//
+//     overlays.remove('GameOver');
+//     overlays.add('Start');
+//   }
+// }
+
+import 'package:flame/game.dart';
+import 'package:flame/components.dart';
+import 'package:flame/input.dart';
+import 'package:flutter/material.dart';
+import 'dart:math';
+import 'package:flutter/services.dart';
+
+class Bird extends StatelessWidget {
+  const Bird({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: GameWidget(
+          game: FlappyBirdGame(),
+          overlayBuilderMap: {
+            'Start': (context, game) => Center(
+              child: Text(
+                'Start',
+                style: TextStyle(
+                  fontSize: 32,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                        blurRadius: 10,
+                        color: Colors.black,
+                        offset: Offset(2, 2))
+                  ],
+                ),
+              ),
+            ),
+            'GameOver': (context, game) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Game Over',
+                    style: TextStyle(
+                      fontSize: 40,
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                            blurRadius: 10,
+                            color: Colors.black,
+                            offset: Offset(2, 2))
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      (game as FlappyBirdGame).restart();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orangeAccent,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Restart',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          },
+          initialActiveOverlays: const ['Start'],
+        ),
+      ),
+    );
+  }
+}
+
+class FlappyBirdGame extends FlameGame with TapDetector, KeyboardEvents {
+  late SpriteComponent bird;
+  late SpriteComponent background;
+
+  double velocity = 0;
+  double gravity = 400;
+  double flapStrength = -300;
+  bool isGameOver = false;
+  bool isGameStarted = false;
+
+  final List<SpriteComponent> pipes = [];
+  final Random random = Random();
+
+  double pipeSpeed = 200;
+  double pipeGap = 280; // ✅ كبرنا الفتحة بين الأنابيب لتسهيل اللعب
+  double pipeSpawnTimer = 0;
+  double birdIdleTimer = 0;
+
+  @override
+  Future<void> onLoad() async {
+    background = SpriteComponent()
+      ..sprite = await loadSprite('bg.png')
+      ..size = size;
+
+    bird = SpriteComponent()
+      ..sprite = await loadSprite('sprite.png')
+      ..size = Vector2(50, 50)
+      ..position = Vector2(size.x / 4, size.y / 2);
+
+    add(background);
+    add(bird);
+  }
+
+  void spawnPipe() async {
+    final pipeWidth = 80.0;
+    final gap = pipeGap;
+
+    final gapY = random.nextDouble() * (size.y - gap - 200) + 100;
+
+    final topSprite = await loadSprite('top.png');
+    final bottomSprite = await loadSprite('down.png');
+
+    final topPipe = SpriteComponent()
+      ..sprite = topSprite
+      ..size = Vector2(pipeWidth, gapY)
+      ..position = Vector2(size.x, 0);
+
+    final bottomPipe = SpriteComponent()
+      ..sprite = bottomSprite
+      ..size = Vector2(pipeWidth, size.y - (gapY + gap))
+      ..position = Vector2(size.x, gapY + gap);
+
+    add(topPipe);
+    add(bottomPipe);
+    pipes.addAll([topPipe, bottomPipe]);
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    if (isGameOver) return;
+
+    if (!isGameStarted) {
+      birdIdleTimer += dt;
+      bird.y = size.y / 2 + sin(birdIdleTimer * 3) * 10;
+      return;
+    }
+
+    velocity += gravity * dt;
+    bird.y += velocity * dt;
+
+    // لو الطيّرة خرجت من الشاشة
+    if (bird.y > size.y - bird.height || bird.y < 0) {
+      gameOver();
+    }
+
+    // تحريك الأنابيب
+    for (var pipe in pipes) {
+      pipe.x -= pipeSpeed * dt;
+    }
+
+    // إزالة الأنابيب القديمة
+    pipes.removeWhere((pipe) {
+      if (pipe.x + pipe.width < 0) {
+        remove(pipe);
+        return true;
+      }
+      return false;
+    });
+
+    // توليد أنابيب جديدة
+    pipeSpawnTimer += dt;
+    if (pipeSpawnTimer > 2.8) {
+      spawnPipe();
+      pipeSpawnTimer = 0;
+    }
+
+    // التحقق من الاصطدام
+    for (var pipe in pipes) {
+      if (bird.toRect().overlaps(pipe.toRect())) {
+        gameOver();
+        break;
+      }
+    }
+  }
+
+  @override
+  void onTap() {
+    if (!isGameStarted && !isGameOver) {
+      isGameStarted = true;
+      velocity = flapStrength;
+      spawnPipe();
+      overlays.remove('Start');
+      return;
+    }
+
+    if (isGameOver) return;
+
+    velocity = flapStrength;
+  }
+
+  // ✅ التحكم بالكيبورد (Space للقفز)
+  @override
+  KeyEventResult onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
+    if (keysPressed.contains(LogicalKeyboardKey.space)) {
+      if (!isGameStarted && !isGameOver) {
+        isGameStarted = true;
+        spawnPipe();
+        overlays.remove('Start');
+      }
+      if (!isGameOver) velocity = flapStrength;
+    }
+    return KeyEventResult.handled;
+  }
+
+  void gameOver() {
+    isGameOver = true;
+    isGameStarted = false;
+    overlays.add('GameOver');
+  }
+
+  void restart() {
+    isGameOver = false;
+    isGameStarted = false;
+    velocity = 0;
+    bird.position = Vector2(size.x / 4, size.y / 2);
+
+    for (var pipe in pipes) {
+      remove(pipe);
+    }
+    pipes.clear();
+
+    overlays.remove('GameOver');
+    overlays.add('Start');
+  }
+}
